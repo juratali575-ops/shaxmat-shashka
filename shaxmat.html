@@ -23,38 +23,29 @@ button{background:#4caf50;color:#fff;border:none;cursor:pointer;}
 .black{background:#b58863}
 .selected{outline:3px solid red}
 .move{background:#7fc97f!important}
-/* // LOGO STILI */
+/* LOGO */
 .logo{width:120px;max-width:60%;margin:0 auto 10px;display:block;}
 .logoText{font-size:28px;color:#4caf50;margin-bottom:10px;font-weight:bold;}
 </style>
 </head>
 <body>
 
-<!-- ================= MENU ================= -->
 <div id="menu">
-
-  <!-- // LOGO (rasm bo‘lsa) -->
+  <!-- LOGO -->
   <img src="logo.png" class="logo">
-  <!-- // AGAR RASM YO‘Q BO‘LSA, MATN LOGO -->
   <!-- <div class="logoText">♟️ SHASHKA PRO</div> -->
-
   <input id="p1" placeholder="1-o‘yinchi">
   <input id="p2" placeholder="2-o‘yinchi / AI">
-
   <select id="mode">
-    <option value="pvp">Odam vs Odam</option> <!-- // Multiplayer -->
-    <option value="ai">Odam vs AI</option>     <!-- // AI -->
+    <option value="pvp">Odam vs Odam</option>
+    <option value="ai">Odam vs AI</option>
   </select>
-
   <button onclick="start()">Boshlash</button>
-
-  <!-- // ALOQA RAQAMI -->
   <p style="margin-top:10px;font-size:14px;color:#ccc">
     Savollar uchun: <b>94 661 2013</b>
   </p>
 </div>
 
-<!-- ================= O‘YIN ================= -->
 <div id="game" class="hidden">
   <div id="info"></div>
   <button onclick="undo()">⏪ Orqaga olish</button>
@@ -68,9 +59,9 @@ const boardEl=document.getElementById("board");
 const info=document.getElementById("info");
 
 let turn="w", selected=null, moves=[], history=[];
-let mode="pvp"; // // DEFAULT MODE
+let mode="pvp";
+let p1="Oq", p2="Qora";
 
-// // SHASHKA DOSKASI
 let board=[
  ["","b","","b","","b","","b"],
  ["b","","b","","b","","b",""],
@@ -85,11 +76,9 @@ let board=[
 function start(){
   const in1=document.getElementById("p1").value;
   const in2=document.getElementById("p2").value;
-  p1=in1||"Oq";
-  p2=in2||"Qora";
-  mode=document.getElementById("mode").value; // // Tanlangan rejim
-  menu.classList.add("hidden");
-  game.classList.remove("hidden");
+  p1=in1||"Oq"; p2=in2||"Qora";
+  mode=document.getElementById("mode").value;
+  menu.classList.add("hidden"); game.classList.remove("hidden");
   draw();
   if(mode==="ai" && turn==="b") setTimeout(aiMove,400);
 }
@@ -97,7 +86,6 @@ function start(){
 function draw(){
   boardEl.innerHTML="";
   info.textContent=(turn==="w"?p1:p2)+" yurmoqda";
-
   for(let r=0;r<8;r++)
     for(let c=0;c<8;c++){
       let d=document.createElement("div");
@@ -109,15 +97,11 @@ function draw(){
     }
 }
 
-function save(){
-  history.push(JSON.parse(JSON.stringify(board)));
-}
+function save(){ history.push(JSON.parse(JSON.stringify(board))); }
 
 function undo(){
   if(!history.length) return;
-  board=history.pop();
-  turn=turn==="w"?"b":"w";
-  draw();
+  board=history.pop(); turn=turn==="w"?"b":"w"; draw();
 }
 
 function clickCell(r,c){
@@ -129,26 +113,22 @@ function clickCell(r,c){
         board[r][c]=board[selected[0]][selected[1]];
         board[selected[0]][selected[1]]="";
         if(m.length===4) board[m[2]][m[3]]="";
-        king(r,c);
-        selected=null;
+        king(r,c); selected=null;
         turn=turn==="w"?"b":"w";
         draw();
         if(mode==="ai" && turn==="b") setTimeout(aiMove,400);
+        checkWinner();
         return;
       }
     }
   }
-
   let v=board[r][c];
   if(!v) return;
   if(turn==="w"&&(v==="w"||v==="W")||turn==="b"&&(v==="b"||v==="B")){
-    selected=[r,c];
-    moves=calcMoves(r,c,v);
-    mark();
+    selected=[r,c]; moves=calcMoves(r,c,v); mark();
   }
 }
 
-// // ORQAGA OLISH + DAMA
 function calcMoves(r,c,p){
   const res=[], cap=[];
   const enemy=p.toLowerCase()==="w"?["b","B"]:["w","W"];
@@ -159,51 +139,83 @@ function calcMoves(r,c,p){
 
   dirs.forEach(d=>{
     let r1=r+d[0],c1=c+d[1],r2=r+d[0]*2,c2=c+d[1]*2;
-    if(enemy.includes(board[r1]?.[c1])&&board[r2]?.[c2]==="")
-      cap.push([r2,c2,r1,c1]);
+    if(enemy.includes(board[r1]?.[c1])&&board[r2]?.[c2]==="") cap.push([r2,c2,r1,c1]);
   });
   if(cap.length) return cap;
-
   dirs.forEach(d=>{
-    if(board[r+d[0]]?.[c+d[1]]==="")
-      res.push([r+d[0],c+d[1]]);
+    if(board[r+d[0]]?.[c+d[1]]==="") res.push([r+d[0],c+d[1]]);
   });
   return res;
 }
 
 function king(r,c){
-  if(board[r][c]==="w" && r===0) board[r][c]="W";
-  if(board[r][c]==="b" && r===7) board[r][c]="B";
-}
-
-function aiMove(){
-  let all=[];
-  for(let r=0;r<8;r++)
-    for(let c=0;c<8;c++)
-      if(board[r][c]==="b"||board[r][c]==="B")
-        calcMoves(r,c,board[r][c]).forEach(m=>all.push([r,c,...m]));
-  if(!all.length) return;
-  let m=all[Math.floor(Math.random()*all.length)];
-  save();
-  board[m[2]][m[3]]=board[m[0]][m[1]];
-  board[m[0]][m[1]]="";
-  if(m.length===6) board[m[4]][m[5]]="";
-  king(m[2],m[3]);
-  turn="w";
-  draw();
+  if(board[r][c]==="w"&&r===0) board[r][c]="W";
+  if(board[r][c]==="b"&&r===7) board[r][c]="B";
 }
 
 function mark(){
   document.querySelectorAll(".cell").forEach((c,i)=>{
-    let r=Math.floor(i/8),co=i%8;
-    if(selected&&r==selected[0]&&co==selected[1]) c.classList.add("selected");
-    moves.forEach(m=>{if(m[0]==r&&m[1]==co) c.classList.add("move")});
+    let r=Math.floor(i/8), co=i%8;
+    if(selected && r==selected[0] && co==selected[1]) c.classList.add("selected");
+    moves.forEach(m=>{if(m[0]==r && m[1]==co) c.classList.add("move")});
   });
 }
+
 function clear(){
   document.querySelectorAll(".cell").forEach(c=>c.classList.remove("selected","move"));
 }
-</script>
 
+function aiMove(){
+  // AQILLI AI: majburiy olishni tekshiradi
+  let all=[];
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      let v=board[r][c];
+      if(v==="b"||v==="B"){
+        let m=calcMoves(r,c,v);
+        m.forEach(x=>all.push([r,c,...x]));
+      }
+    }
+  }
+  if(!all.length) return;
+  // AI strategiyasi: oldinga olish yoki random
+  let capture=all.filter(m=>m.length===6); // majburiy olish
+  let move = capture.length? capture[Math.floor(Math.random()*capture.length)] 
+                          : all[Math.floor(Math.random()*all.length)];
+  save();
+  board[move[2]][move[3]]=board[move[0]][move[1]];
+  board[move[0]][move[1]]="";
+  if(move.length===6) board[move[4]][move[5]]="";
+  king(move[2],move[3]);
+  turn="w";
+  draw();
+  checkWinner();
+}
+
+function checkWinner(){
+  let w=false,b=false;
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    if(board[r][c]=="w"||board[r][c]=="W") w=true;
+    if(board[r][c]=="b"||board[r][c]=="B") b=true;
+  }
+  if(!w){ alert("Qora g‘alaba!"); reset(); }
+  if(!b){ alert("Oq g‘alaba!"); reset(); }
+}
+
+function reset(){
+  board=[
+ ["","b","","b","","b","","b"],
+ ["b","","b","","b","","b",""],
+ ["","b","","b","","b","","b"],
+ ["","","","","","","",""],
+ ["","","","","","","",""],
+ ["w","","w","","w","","w",""],
+ ["","w","","w","","w","","w"],
+ ["w","","w","","w","","w",""]
+  ];
+  turn="w"; history=[]; draw();
+}
+
+</script>
 </body>
 </html>
