@@ -5,14 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Shashka O‘yini</title>
 <style>
-body{
-  margin:0;background:#222;color:#fff;font-family:Arial;
-  display:flex;justify-content:center;align-items:center;
-  flex-direction:column;min-height:100vh;
-}
-#menu,#game{
-  width:90%;max-width:400px;background:#333;padding:15px;border-radius:12px;text-align:center;
-}
+body{margin:0;background:#222;color:#fff;font-family:Arial;display:flex;justify-content:center;align-items:center;flex-direction:column;min-height:100vh;}
+#menu,#game{width:90%;max-width:400px;background:#333;padding:15px;border-radius:12px;text-align:center;}
 .hidden{display:none}
 input,select,button{width:100%;padding:10px;margin:6px 0;font-size:18px;border-radius:6px;}
 button{background:#4caf50;color:#fff;border:none;cursor:pointer;}
@@ -23,7 +17,6 @@ button{background:#4caf50;color:#fff;border:none;cursor:pointer;}
 .black{background:#b58863}
 .selected{outline:3px solid red}
 .move{background:#7fc97f!important}
-/* LOGO */
 .logo{width:120px;max-width:60%;margin:0 auto 10px;display:block;}
 .logoText{font-size:28px;color:#4caf50;margin-bottom:10px;font-weight:bold;}
 </style>
@@ -31,7 +24,6 @@ button{background:#4caf50;color:#fff;border:none;cursor:pointer;}
 <body>
 
 <div id="menu">
-  <!-- LOGO -->
   <img src="logo.png" class="logo">
   <!-- <div class="logoText">♟️ SHASHKA PRO</div> -->
   <input id="p1" placeholder="1-o‘yinchi">
@@ -42,7 +34,7 @@ button{background:#4caf50;color:#fff;border:none;cursor:pointer;}
   </select>
   <button onclick="start()">Boshlash</button>
   <p style="margin-top:10px;font-size:14px;color:#ccc">
-    Savollar uchun: <b>94 661 2013</b>
+    Savollar uchun: <b>946612013</b>
   </p>
 </div>
 
@@ -165,8 +157,8 @@ function clear(){
   document.querySelectorAll(".cell").forEach(c=>c.classList.remove("selected","move"));
 }
 
+// AQILLI AI
 function aiMove(){
-  // AQILLI AI: majburiy olishni tekshiradi
   let all=[];
   for(let r=0;r<8;r++){
     for(let c=0;c<8;c++){
@@ -178,8 +170,7 @@ function aiMove(){
     }
   }
   if(!all.length) return;
-  // AI strategiyasi: oldinga olish yoki random
-  let capture=all.filter(m=>m.length===6); // majburiy olish
+  let capture=all.filter(m=>m.length===6); 
   let move = capture.length? capture[Math.floor(Math.random()*capture.length)] 
                           : all[Math.floor(Math.random()*all.length)];
   save();
@@ -192,14 +183,29 @@ function aiMove(){
   checkWinner();
 }
 
+// G‘alaba va durang tekshiruvi
 function checkWinner(){
-  let w=false,b=false;
+  let w=false,b=false, empty=false;
   for(let r=0;r<8;r++) for(let c=0;c<8;c++){
     if(board[r][c]=="w"||board[r][c]=="W") w=true;
     if(board[r][c]=="b"||board[r][c]=="B") b=true;
+    if(board[r][c]=="") empty=true;
   }
-  if(!w){ alert("Qora g‘alaba!"); reset(); }
-  if(!b){ alert("Oq g‘alaba!"); reset(); }
+  if(!w){ alert("Qora g‘alaba! \nXabar Telegram: 946612013"); reset(); return;}
+  if(!b){ alert("Oq g‘alaba! \nXabar Telegram: 946612013"); reset(); return;}
+  // Durang sharti: hech qanday yurish qolmasa yoki faqat bir rang qolsa
+  let movesLeft=false;
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      if(board[r][c]!=="") {
+        if(calcMoves(r,c,board[r][c]).length>0) movesLeft=true;
+      }
+    }
+  }
+  if(!movesLeft){
+    alert("Durang! \nXabar Telegram: 946612013");
+    reset();
+  }
 }
 
 function reset(){
@@ -215,7 +221,7 @@ function reset(){
   ];
   turn="w"; history=[]; draw();
 }
-
 </script>
+
 </body>
 </html>
