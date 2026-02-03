@@ -5,45 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Shashka O‘yini</title>
 <style>
-body{
-  margin:0;background:#222;color:#fff;
-  font-family:Arial;display:flex;justify-content:center;align-items:center;
-  flex-direction:column;
-  min-height:100vh;
-}
-#menu, #game{
-  width:90%; max-width:400px; text-align:center; margin:10px auto;
-  background:#333;padding:15px;border-radius:12px;
-}
-#menu input,#menu select,#menu button{
-  width:100%;margin:6px 0;padding:10px;font-size:18px;
-  border-radius:6px;
-}
-#menu button{background:#4caf50;border:none;color:#fff;cursor:pointer}
-#info{margin-bottom:8px;font-size:18px;}
-.board{
-  display:grid;
-  grid-template-columns:repeat(8,1fr);
-  aspect-ratio:1;
-  border:4px solid #333;
-}
-.cell{
-  width:100%;height:100%;
-  display:flex;justify-content:center;align-items:center;
-  font-size:calc(20px + 2vmin);
-  cursor:pointer;user-select:none;
-}
+body{margin:0;background:#222;color:#fff;font-family:Arial;display:flex;justify-content:center;align-items:center;flex-direction:column;min-height:100vh;}
+#menu,#game{width:90%;max-width:400px;background:#333;padding:15px;border-radius:12px;text-align:center;}
+.hidden{display:none}
+input,select,button{width:100%;padding:10px;margin:6px 0;font-size:18px;border-radius:6px;}
+button{background:#4caf50;color:#fff;border:none;cursor:pointer;}
+#info{margin-bottom:8px;font-size:18px}
+.board{display:grid;grid-template-columns:repeat(8,1fr);aspect-ratio:1;border:4px solid #111;}
+.cell{display:flex;align-items:center;justify-content:center;font-size:calc(22px + 2vmin);user-select:none;}
 .white{background:#f0d9b5}
 .black{background:#b58863}
 .selected{outline:3px solid red}
 .move{background:#7fc97f!important}
-button{font-size:18px;padding:8px;margin-top:5px;border-radius:6px;}
+.logo{width:120px;max-width:60%;margin:0 auto 10px;display:block;}
+.logoText{font-size:28px;color:#4caf50;margin-bottom:10px;font-weight:bold;}
 </style>
 </head>
 <body>
 
 <div id="menu">
-  <h2>Shashka o‘yini</h2>
+  <img src="logo.png" class="logo">
+  <!-- <div class="logoText">♟️ SHASHKA PRO</div> -->
   <input id="p1" placeholder="1-o‘yinchi">
   <input id="p2" placeholder="2-o‘yinchi / AI">
   <select id="mode">
@@ -51,6 +33,9 @@ button{font-size:18px;padding:8px;margin-top:5px;border-radius:6px;}
     <option value="ai">Odam vs AI</option>
   </select>
   <button onclick="start()">Boshlash</button>
+  <p style="margin-top:10px;font-size:14px;color:#ccc">
+    Savollar uchun: <b>946612013</b>
+  </p>
 </div>
 
 <div id="game" class="hidden">
@@ -65,13 +50,11 @@ const game=document.getElementById("game");
 const boardEl=document.getElementById("board");
 const info=document.getElementById("info");
 
-let p1="O‘yinchi 1", p2="O‘yinchi 2";
+let turn="w", selected=null, moves=[], history=[];
 let mode="pvp";
-let turn="w", selected=null, moves=[];
-let history=[];
+let p1="Oq", p2="Qora";
 
-/* ===== SHASHKA ===== */
-let checkersBoard=[
+let board=[
  ["","b","","b","","b","","b"],
  ["b","","b","","b","","b",""],
  ["","b","","b","","b","","b"],
@@ -83,108 +66,90 @@ let checkersBoard=[
 ];
 
 function start(){
-  let in1=document.getElementById("p1").value;
-  let in2=document.getElementById("p2").value;
-  p1=in1||p1; p2=in2||p2;
+  const in1=document.getElementById("p1").value;
+  const in2=document.getElementById("p2").value;
+  p1=in1||"Oq"; p2=in2||"Qora";
   mode=document.getElementById("mode").value;
-  menu.classList.add("hidden");
-  game.classList.remove("hidden");
+  menu.classList.add("hidden"); game.classList.remove("hidden");
   draw();
-  checkWinner();
   if(mode==="ai" && turn==="b") setTimeout(aiMove,400);
 }
 
 function draw(){
   boardEl.innerHTML="";
   info.textContent=(turn==="w"?p1:p2)+" yurmoqda";
-  let b=checkersBoard;
-  for(let r=0;r<8;r++){
+  for(let r=0;r<8;r++)
     for(let c=0;c<8;c++){
-      const cell=document.createElement("div");
-      cell.className="cell "+((r+c)%2?"black":"white");
-      let v=b[r][c];
-      cell.textContent=v==="w"?"⚪":v==="b"?"⚫":v==="W"?"👑":v==="B"?"👑":"";
-      cell.onclick=()=>clickCell(r,c);
-      boardEl.appendChild(cell);
+      let d=document.createElement("div");
+      d.className="cell "+((r+c)%2?"black":"white");
+      let v=board[r][c];
+      d.textContent=v==="w"?"⚪":v==="b"?"⚫":v==="W"?"👑":v==="B"?"👑":"";
+      d.onclick=()=>clickCell(r,c);
+      boardEl.appendChild(d);
     }
-  }
 }
 
-function saveState(){
-  history.push({board:JSON.parse(JSON.stringify(checkersBoard)), turn:turn});
+function save(){ history.push(JSON.parse(JSON.stringify(board))); }
+
+function undo(){
+  if(!history.length) return;
+  board=history.pop(); turn=turn==="w"?"b":"w"; draw();
 }
 
 function clickCell(r,c){
   clear();
-  let b=checkersBoard;
-
   if(selected){
     for(let m of moves){
       if(m[0]==r && m[1]==c){
-        saveState();
-        b[r][c]=b[selected[0]][selected[1]];
-        b[selected[0]][selected[1]]="";
-        if(m.length===4) b[m[2]][m[3]]="";
-        makeKing(r,c);
-        selected=null;
+        save();
+        board[r][c]=board[selected[0]][selected[1]];
+        board[selected[0]][selected[1]]="";
+        if(m.length===4) board[m[2]][m[3]]="";
+        king(r,c); selected=null;
         turn=turn==="w"?"b":"w";
         draw();
-        checkWinner();
         if(mode==="ai" && turn==="b") setTimeout(aiMove,400);
+        checkWinner();
         return;
       }
     }
   }
-
-  let v=b[r][c];
+  let v=board[r][c];
   if(!v) return;
   if(turn==="w"&&(v==="w"||v==="W")||turn==="b"&&(v==="b"||v==="B")){
-    selected=[r,c];
-    moves=checkersMoves(r,c,v);
-    mark();
+    selected=[r,c]; moves=calcMoves(r,c,v); mark();
   }
 }
 
-function checkersMoves(r,c,p){
+function calcMoves(r,c,p){
   const res=[], cap=[];
-  const enemy = p.toLowerCase()==="w"?["b","B"]:["w","W"];
-  const dirs = [];
+  const enemy=p.toLowerCase()==="w"?["b","B"]:["w","W"];
+  const dirs=[];
   if(p==="w") dirs.push([-1,-1],[-1,1]);
   if(p==="b") dirs.push([1,-1],[1,1]);
   if(p==="W"||p==="B") dirs.push([-1,-1],[-1,1],[1,-1],[1,1]);
 
   dirs.forEach(d=>{
-    let r1=r+d[0], c1=c+d[1], r2=r+d[0]*2, c2=c+d[1]*2;
-    if(enemy.includes(checkersBoard[r1]?.[c1]) && checkersBoard[r2]?.[c2]==="")
-      cap.push([r2,c2,r1,c1]);
+    let r1=r+d[0],c1=c+d[1],r2=r+d[0]*2,c2=c+d[1]*2;
+    if(enemy.includes(board[r1]?.[c1])&&board[r2]?.[c2]==="") cap.push([r2,c2,r1,c1]);
   });
   if(cap.length) return cap;
   dirs.forEach(d=>{
-    if(checkersBoard[r+d[0]]?.[c+d[1]]==="")
-      res.push([r+d[0],c+d[1]]);
+    if(board[r+d[0]]?.[c+d[1]]==="") res.push([r+d[0],c+d[1]]);
   });
   return res;
 }
 
-function makeKing(r,c){
-  if(checkersBoard[r][c]==="w" && r===0) checkersBoard[r][c]="W";
-  if(checkersBoard[r][c]==="b" && r===7) checkersBoard[r][c]="B";
-}
-
-function undo(){
-  if(!history.length) return;
-  let last=history.pop();
-  checkersBoard=JSON.parse(JSON.stringify(last.board));
-  turn=last.turn;
-  selected=null;
-  draw();
+function king(r,c){
+  if(board[r][c]==="w"&&r===0) board[r][c]="W";
+  if(board[r][c]==="b"&&r===7) board[r][c]="B";
 }
 
 function mark(){
   document.querySelectorAll(".cell").forEach((c,i)=>{
-    let r=Math.floor(i/8), col=i%8;
-    if(selected&&r==selected[0]&&col==selected[1]) c.classList.add("selected");
-    moves.forEach(m=>{if(m[0]==r&&m[1]==col) c.classList.add("move")});
+    let r=Math.floor(i/8), co=i%8;
+    if(selected && r==selected[0] && co==selected[1]) c.classList.add("selected");
+    moves.forEach(m=>{if(m[0]==r && m[1]==co) c.classList.add("move")});
   });
 }
 
@@ -192,53 +157,69 @@ function clear(){
   document.querySelectorAll(".cell").forEach(c=>c.classList.remove("selected","move"));
 }
 
+// AQILLI AI
 function aiMove(){
   let all=[];
-  for(let r=0;r<8;r++)
+  for(let r=0;r<8;r++){
     for(let c=0;c<8;c++){
-      let v=checkersBoard[r][c];
-      if(turn==="b"&&(v==="b"||v==="B")){
-        let m=checkersMoves(r,c,v);
+      let v=board[r][c];
+      if(v==="b"||v==="B"){
+        let m=calcMoves(r,c,v);
         m.forEach(x=>all.push([r,c,...x]));
       }
     }
+  }
   if(!all.length) return;
-  let m=all[Math.floor(Math.random()*all.length)];
-  saveState();
-  checkersBoard[m[2]][m[3]]=checkersBoard[m[0]][m[1]];
-  checkersBoard[m[0]][m[1]]="";
-  if(m.length===6) checkersBoard[m[4]][m[5]]="";
-  makeKing(m[2],m[3]);
+  let capture=all.filter(m=>m.length===6); 
+  let move = capture.length? capture[Math.floor(Math.random()*capture.length)] 
+                          : all[Math.floor(Math.random()*all.length)];
+  save();
+  board[move[2]][move[3]]=board[move[0]][move[1]];
+  board[move[0]][move[1]]="";
+  if(move.length===6) board[move[4]][move[5]]="";
+  king(move[2],move[3]);
   turn="w";
   draw();
   checkWinner();
 }
 
+// G‘alaba va durang tekshiruvi
 function checkWinner(){
-  let w=false, b=false;
-  for(let r=0;r<8;r++)
+  let w=false,b=false, empty=false;
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    if(board[r][c]=="w"||board[r][c]=="W") w=true;
+    if(board[r][c]=="b"||board[r][c]=="B") b=true;
+    if(board[r][c]=="") empty=true;
+  }
+  if(!w){ alert("Qora g‘alaba! \nXabar Telegram: 946612013"); reset(); return;}
+  if(!b){ alert("Oq g‘alaba! \nXabar Telegram: 946612013"); reset(); return;}
+  // Durang sharti: hech qanday yurish qolmasa yoki faqat bir rang qolsa
+  let movesLeft=false;
+  for(let r=0;r<8;r++){
     for(let c=0;c<8;c++){
-      if(checkersBoard[r][c]=="w"||checkersBoard[r][c]=="W") w=true;
-      if(checkersBoard[r][c]=="b"||checkersBoard[r][c]=="B") b=true;
+      if(board[r][c]!=="") {
+        if(calcMoves(r,c,board[r][c]).length>0) movesLeft=true;
+      }
     }
-  if(!w) {alert("Qora g‘alaba!"); reset(); return;}
-  if(!b) {alert("Oq g‘alaba!"); reset(); return;}
+  }
+  if(!movesLeft){
+    alert("Durang! \nXabar Telegram: 946612013");
+    reset();
+  }
 }
 
 function reset(){
-  checkersBoard=[
-   ["","b","","b","","b","","b"],
-   ["b","","b","","b","","b",""],
-   ["","b","","b","","b","","b"],
-   ["","","","","","","",""],
-   ["","","","","","","",""],
-   ["w","","w","","w","","w",""],
-   ["","w","","w","","w","","w"],
-   ["w","","w","","w","","w",""]
+  board=[
+ ["","b","","b","","b","","b"],
+ ["b","","b","","b","","b",""],
+ ["","b","","b","","b","","b"],
+ ["","","","","","","",""],
+ ["","","","","","","",""],
+ ["w","","w","","w","","w",""],
+ ["","w","","w","","w","","w"],
+ ["w","","w","","w","","w",""]
   ];
-  turn="w";
-  history=[];
-  draw();
+  turn="w"; history=[]; draw();
 }
 </script>
 
